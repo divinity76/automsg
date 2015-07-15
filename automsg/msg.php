@@ -5,24 +5,73 @@
 	header("content-type: text/plain");
 	if(empty($_GET['sender'])){
 		die('need sender!');
-		}
+	}
+	$sender=$_GET['sender'];
 	if(empty($_GET['reciever'])){
 		die('need reciever!');
-		}
+	}
+	$reciever=$_GET['reciever'];
 	if(empty($_GET['message'])){
 		die('need message!');
+	}
+	$message=$_GET['message'];
+	$response=getResponse($message,$sender,$reciever);
+	var_dump($response);die("RESPONSEDIED");
+	
+	function getResponse($message,$sender,$reciever){
+		$stuff=getCurlWithSession();
+		//var_dump($stuff);die("DIEDS");
+		$ch=$stuff['ch'];
+		curl_setopt_array($ch,array(
+		CURLOPT_POST=>1,
+		CURLOPT_POSTFIELDS=>http_build_query(array(
+		'botcust2'=>$stuff['cookies']['botcust2'],
+		'input'=>$message
+		))
+		));
+		$headers=array();
+		$cookies=array();
+		$debuginfo="";
+		$html=hhb_curl_exec2($ch,'http://sheepridge.pandorabots.com/pandora/talk?botid=b69b8d517e345aba&skin=custom_input',$headers,$cookies,$debuginfo);
+		//var_dump($html,$headers,$cookies,$debuginfo);die("died36");
+		$response=strpos($html,'ALICE:');
+		assert($response!==false);
+		$response=trim(substr($html,$response+strlen('ALICE:')));
+		//var_dump($response);die("DIED");
+		$response=filterMessage($response,$sender,$reciever);
+		return $response;
+	}
+	function filterMessage($message,$sender,$reciever){
+		$message=strtolower($message);
+		$replacements=array(
+		'robot'=>'cat',
+		'artificial intelligence'=>'cat',
+		'my own childhood days'=>'penis',
+		'ask me another question'=>'bleh',
+		'what is your favorite color?'=>'bleh',
+		'are we still talking about your personality ?'=>'blah',
+		'alice'=>$reciever,
+		'machine kingdom'=>'Uchia',
+		'pandorabot'=>'Uchia',
+		'machine'=>'kitten',
+		'i\'m glad you find this amusing.'=>'funny',
+		'certainly, i have an extensive built-in help system'=>'nope',
+		'i haven\'t heard anything like that before'=>'uhu',
+		'that\'s good information'=>'right',
+		'do you mind if i tell other people'=>'uhu',
+		'I like the way you talk'=>'.',
+		'hi there!'=>'hi',
+		'always chatting with people on the internet'=>'playing..',
+		'chatting with people on the web'=>'derping',
+		'with people on the net'=>'..',
+		'botmaster'=>'boss',
+		'  '=>' ',
+		);
+		foreach($replacements as $old=>$new){
+			$message=str_replace($old,$new,$message);
 		}
-		
-	$stuff=getCurlWithSession();
-	var_dump($stuff);die("DIEDS");
-	
-	
-	
-	
-	
-	
-	function filterMessage($message,$reciever,$sender){
-		
+		unset($old,$new);
+		return $message;
 	}
 	
 	function getCurlWithSession(){
@@ -33,8 +82,7 @@
 		$verboseDebugInfo=array();
 		$html=hhb_curl_exec2($ch,'http://sheepridge.pandorabots.com/pandora/talk?botid=b69b8d517e345aba&skin=custom_input',$headers,$cookies,$verboseDebugInfo);
 		return array('ch'=>$ch,'html'=>$html,'headers'=>$headers,'cookies'=>$cookies,'verboseDebugInfo'=>$verboseDebugInfo); 
-		
-		}
+	}
 	
 	
 	
@@ -88,4 +136,4 @@
 		echo "CREATED THE DATABASE!";
 		unset($dbc);
 		return true;
-	}	
+	}		
