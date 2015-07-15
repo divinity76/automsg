@@ -2,7 +2,7 @@
 	require_once('hhb_.inc.php');
 	require_once('hhb_datatypes.inc.php');
 	init();
-	header("content-type: text/plain");
+//	header("content-type: text/plain");
 	if(empty($_GET['sender'])){
 		die('need sender!');
 	}
@@ -39,6 +39,14 @@
 		$response=trim(substr($html,$response+strlen('ALICE:')));
 		//var_dump($response);die("DIED");
 		$response=filterMessage($response,$sender,$reciever);
+		global $dbc;
+		$stm=$dbc->prepare('INSERT INTO `messages` (`reciever`,`sender`,`message`,`response`,`date`) VALUES (:reciever,:sender,:message,:response,:date);');
+		$stm->execute(array(
+		':reciever'=>$reciever,
+		':sender'=>$sender,
+		':message'=>$message,
+		':date'=>date("Y-m-d H:i:s"),
+		));
 		return $response;
 	}
 	function filterMessage($message,$sender,$reciever){
@@ -66,6 +74,11 @@
 		'with people on the net'=>'..',
 		'botmaster'=>'boss',
 		'  '=>' ',
+		'this is just a test'=>'test lol',
+		'can you please rephrase that with fewer ideas, or different thoughts'=>'no understand lal',
+		'how old are you?'=>'..',
+		'can you tell me any gossip?'=>'tiredz',
+		'why, specifically?'=>'why?',
 		);
 		foreach($replacements as $old=>$new){
 			$message=str_replace($old,$new,$message);
@@ -83,8 +96,6 @@
 		$html=hhb_curl_exec2($ch,'http://sheepridge.pandorabots.com/pandora/talk?botid=b69b8d517e345aba&skin=custom_input',$headers,$cookies,$verboseDebugInfo);
 		return array('ch'=>$ch,'html'=>$html,'headers'=>$headers,'cookies'=>$cookies,'verboseDebugInfo'=>$verboseDebugInfo); 
 	}
-	
-	
 	
 	function init(){
 		hhb_init();
