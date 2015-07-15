@@ -82,6 +82,9 @@
 		'why, specifically?'=>'why?',
 		'you can ask me to make phone calls and search for information'=>'do not ask me',
 		'i really enjoy speaking with you and look forward to chatting again'=>'talk later',
+		'what you said was too complicated for me'=>'not understand',
+		'who is your favorite science fiction author?'=>'..',
+		'tell me about your father'=>'dont tell me',
 		);
 		foreach($replacements as $old=>$new){
 			$message=str_replace($old,$new,$message);
