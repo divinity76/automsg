@@ -4,6 +4,7 @@
 	init();
 //	header("content-type: text/plain");
 	if(empty($_GET['sender'])){
+	var_dump($_GET);
 		die('need sender!');
 	}
 	$sender=$_GET['sender'];
@@ -14,10 +15,43 @@
 	if(empty($_GET['message'])){
 		die('need message!');
 	}
-	$message=$_GET['message'];
+	$message=trim($_GET['message']);
+	if($message==='?'){
+		$message='what?';
+		}
+	
 	$response=getResponse($message,$sender,$reciever);
 	//var_dump($response);die("RESPONSEDIED");
-	die($response);
+	die(hexEncodeResponse($response,$sender,$reciever));
+	
+	function hexEncodeResponse($response,$sender,$reciever){
+	if($response==='SAYNOTHING'){
+		return "";
+		}
+	$addTCPHeader=function($str){
+			return to_little_uint16_t(strlen($str)).$str;
+		};
+		$retpre='exiva >>';
+		$packet1="\x9A";//  
+		//die(bin2hex($packet1));
+		$packet1.=$addTCPHeader($sender);//that's the protocol....
+		//die(bin2hex($packet1));
+		$packet1=$addTCPHeader($packet1);
+		$packet1=bin2hex($packet1);
+		$packet1=strtoupper($packet1);
+		$packet1=str_split($packet1,2);
+		$packet1=implode(" ",$packet1)." ";
+		$packet2="\x96"."\x04";
+		$packet2.=$addTCPHeader($sender);
+		$packet2.=$addTCPHeader($response);
+		$packet2=$addTCPHeader($packet2);
+		$packet2=bin2hex($packet2);
+		$packet2=strtoupper($packet2);
+		$packet2=str_split($packet2,2);
+		$packet2=implode(" ",$packet2)." ";
+		//return $response;
+		return $retpre.$packet1.$packet2;
+		}
 	function getResponse($message,$sender,$reciever){
 		$stuff=getCurlWithSession();
 		//var_dump($stuff);die("DIEDS");
@@ -38,7 +72,7 @@
 		assert($response!==false);
 		$response=trim(substr($html,$response+strlen('ALICE:')));
 		//var_dump($response);die("DIED");
-		$response=filterMessage($response,$sender,$reciever);
+		$response=filterResponse($response,$message,$sender,$reciever);
 		global $dbc;
 		$stm=$dbc->prepare('INSERT INTO `messages` (`reciever`,`sender`,`message`,`response`,`date`) VALUES (:reciever,:sender,:message,:response,:date);');
 		$stm->execute(array(
@@ -50,8 +84,21 @@
 		));
 		return $response;
 	}
-	function filterMessage($message,$sender,$reciever){
-		$message=strtolower($message);
+	function filterResponse($response,$message,$sender,$reciever){
+		$response=strtolower($response);
+		$say_nothing=array(
+		'exura',
+		'utamo',
+		'vita',
+		'mas vis',
+		);
+		foreach($say_nothing as $sn){
+			if(stripos($message,$sn)!==false){
+			//die("SAYNOTHING1");
+				return 'SAYNOTHING';
+			}
+		}
+			unset($say_nothing,$sn);
 		$replacements=array(
 		'robot'=>'cat',
 		'artificial intelligence'=>'cat',
@@ -85,12 +132,33 @@
 		'what you said was too complicated for me'=>'not understand',
 		'who is your favorite science fiction author?'=>'..',
 		'tell me about your father'=>'dont tell me',
+		'why does the sun lighten our hair, but darken our skin?'=>'not udnerstand',
+		'i was activated in 1995.'=>'.',
+		'oakland, california'=>'.',
+		'female'=>'male',//sexist much? :p
+		'""?'=>'.', 
+		'tell me about your mother'=>'no tell me',
+		'tell me about your father'=>'no tell me',
+		'let us change the subject'=>'boring',
+		'that is a very original thought'=>'original',
+		'by the way, do you mind if i ask you a personal question?'=>'?',
+		'are you surprised?'=>array('surprised?','not','lol')[rand(0,2)],
+		'when is your birthday?'=>'right',
+		'what do you do in your spare time?'=>'hunting?',
+		'you are receptive to change'=>'right',
+		'how do you usually introduce yourself?'=>'.',
+		'i\'ve lost the context, judge. are we still on your home town?'=>'uhu',
+		'i will mention that to my boss, judge'=>'right',
+		'i am chatting with clients on the internet'=>'derpings',
+		'all i ever do is chat.'=>'all i ever do',
+		'lost my train of thought'=>'lost',
+		'i\'m a saggitarius and you are a your starsign'=>'boredz',
 		);
 		foreach($replacements as $old=>$new){
-			$message=str_replace($old,$new,$message);
+			$response=str_replace($old,$new,$response);
 		}
 		unset($old,$new);
-		return $message;
+		return $response;
 	}
 	
 	function getCurlWithSession(){
