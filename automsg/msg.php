@@ -45,7 +45,6 @@
 		':reciever'=>$reciever,
 		':sender'=>$sender,
 		':message'=>$message,
-		':response'=>$response,
 		':date'=>date("Y-m-d H:i:s"),
 		));
 		return $response;
@@ -80,8 +79,6 @@
 		'how old are you?'=>'..',
 		'can you tell me any gossip?'=>'tiredz',
 		'why, specifically?'=>'why?',
-		'you can ask me to make phone calls and search for information'=>'do not ask me',
-		'i really enjoy speaking with you and look forward to chatting again'=>'talk later',
 		);
 		foreach($replacements as $old=>$new){
 			$message=str_replace($old,$new,$message);
@@ -145,7 +142,7 @@
 		`last_action_time`	VARCHAR(255) NOT NULL DEFAULT NULL,
 		PRIMARY KEY(`id` ASC)
 		);');
-		$dbc->query('INSERT INTO `sessions` (`sessioncookies`,`reciever`,`sender`,`creation_time`,`last_action_time`) VALUES(\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\');');
+		$dbc->query('INSERT INTO `sessions` (`sessioncookies`,`reciever`,`sender`,`creation_time`,`last_action_time`,) VALUES(\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\');');
 		$dbc->query('SELECT * FROM `messages`');
 		echo "CREATED THE DATABASE!";
 		unset($dbc);
