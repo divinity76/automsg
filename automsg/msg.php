@@ -16,8 +16,8 @@
 	}
 	$message=$_GET['message'];
 	$response=getResponse($message,$sender,$reciever);
-	var_dump($response);die("RESPONSEDIED");
-	
+	//var_dump($response);die("RESPONSEDIED");
+	die($response);
 	function getResponse($message,$sender,$reciever){
 		$stuff=getCurlWithSession();
 		//var_dump($stuff);die("DIEDS");
@@ -150,7 +150,7 @@
 		);');
 		$dbc->query('INSERT INTO `sessions` (`sessioncookies`,`reciever`,`sender`,`creation_time`,`last_action_time`) VALUES(\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\',\'NOT IMPLEMENTED\');');
 		$dbc->query('SELECT * FROM `messages`');
-		echo "CREATED THE DATABASE!";
+//		echo "CREATED THE DATABASE!";
 		unset($dbc);
 		return true;
 	}		
