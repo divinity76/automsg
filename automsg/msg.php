@@ -1,33 +1,59 @@
 <?php
 	require_once('hhb_.inc.php');
 	require_once('hhb_datatypes.inc.php');
+	require_once('free_google_translate.inc.php');
 	init();
-//	header("content-type: text/plain");
+	define("CHATBOT_TYPE","MITSUKI");
+	//define("CHATBOT_TYPE","ALICE");
+	header("content-type: text/plain;charset=utf8");
 	if(empty($_GET['sender'])){
 	var_dump($_GET);
 		die('need sender!');
 	}
 	$sender=$_GET['sender'];
 	if(empty($_GET['reciever'])){
-		die('need reciever!');
+	var_dump($_GET);
+	die('need reciever!');
 	}
 	$reciever=$_GET['reciever'];
 	if(empty($_GET['message'])){
-		die('need message!');
+	var_dump($_GET);
+	die('need message!');
 	}
 	$message=trim($_GET['message']);
 	if($message==='?'){
 		$message='what?';
 		}
+		if(saynothing($message)){
+			die();
+			}
+	$translated_message=free_google_translate($message,'pl','en');
 	
 	$response=getResponse($message,$sender,$reciever);
 	//var_dump($response);die("RESPONSEDIED");
 	die(hexEncodeResponse($response,$sender,$reciever));
-	
-	function hexEncodeResponse($response,$sender,$reciever){
-	if($response==='SAYNOTHING'){
-		return "";
+	function saynothing($message){
+		$say_nothing=array(
+		'exura',
+		'utamo',
+		'vita',
+		'mas vis',
+		'exani',
+		'!manas',
+		'!smanas',
+		'!uh',
+		'!suh',
+		'exiva',
+		);
+		foreach($say_nothing as $sn){
+			if(stripos($message,$sn)!==false){
+				return true;
+			}
 		}
+			unset($say_nothing,$sn);
+			return false;
+		}
+	function hexEncodeResponse($response,$sender,$reciever){
 	$addTCPHeader=function($str){
 			return to_little_uint16_t(strlen($str)).$str;
 		};
@@ -66,6 +92,7 @@
 		$headers=array();
 		$cookies=array();
 		$debuginfo="";
+		if(CHATBOT_TYPE==='ALICE'){
 		$html=hhb_curl_exec2($ch,'http://sheepridge.pandorabots.com/pandora/talk?botid=b69b8d517e345aba&skin=custom_input',$headers,$cookies,$debuginfo);
 		//var_dump($html,$headers,$cookies,$debuginfo);die("died36");
 		$response=strpos($html,'ALICE:');
@@ -73,40 +100,51 @@
 		$response=trim(substr($html,$response+strlen('ALICE:')));
 		//var_dump($response);die("DIED");
 		$response=filterResponse($response,$message,$sender,$reciever);
+		} elseif(CHATBOT_TYPE==='MITSUKI'){
+		//TODO.
+		$html=hhb_curl_exec2($ch,'http://fiddle.pandorabots.com/pandora/talk?botid=9fa364f2fe345a10&skin=demochat',$headers,$cookies,$debuginfo);
+		$end=strrpos($html,'<br> <br>',0);
+		assert($end!==false);
+		$response=substr($html,0,$end);
+		$start=strrpos($response,'>',0);
+		assert($start!==false);
+		$start++;
+		$response=substr($response,$start);
+		$response=trim($response);
+		$response=filterResponse($response,$message,$sender,$reciever);
+		}
+		else {
+			throw new Exception("UNKNOWN CHATBOT_TYPE: ".CHATBOT_TYPE);
+			}
+		$translatedResponse=free_google_translate($response,'en','pl');
+		//$translatedResponse=mb_convert_encoding($translatedResponse,'ISO-8859-3','UTF-8');
+		//WARNING: between 3-15 is not tested.. anyway, they are both wrong, but they are very close..
+		$translatedResponse=mb_convert_encoding($translatedResponse,'ISO-8859-15','UTF-8');
+		
 		global $dbc;
 		$stm=$dbc->prepare('INSERT INTO `messages` (`reciever`,`sender`,`message`,`response`,`date`) VALUES (:reciever,:sender,:message,:response,:date);');
 		$stm->execute(array(
 		':reciever'=>$reciever,
 		':sender'=>$sender,
 		':message'=>$message,
-		':response'=>$response,
+		':response'=>$response.' ---- TRANSLATED RESPONSE: '.$translatedResponse.' ---CHATBOT_TYPE:'.CHATBOT_TYPE,
 		':date'=>date("Y-m-d H:i:s"),
 		));
-		return $response;
+		//return $response;
+		return $translatedResponse;
 	}
 	function filterResponse($response,$message,$sender,$reciever){
 		$response=strtolower($response);
-		$say_nothing=array(
-		'exura',
-		'utamo',
-		'vita',
-		'mas vis',
-		);
-		foreach($say_nothing as $sn){
-			if(stripos($message,$sn)!==false){
-			//die("SAYNOTHING1");
-				return 'SAYNOTHING';
-			}
-		}
-			unset($say_nothing,$sn);
 		$replacements=array(
 		'robot'=>'cat',
+		'computer'=>'cat',
 		'artificial intelligence'=>'cat',
 		'my own childhood days'=>'penis',
 		'ask me another question'=>'bleh',
 		'what is your favorite color?'=>'bleh',
 		'are we still talking about your personality ?'=>'blah',
 		'alice'=>$reciever,
+		'Mitsuku'=>$reciever,
 		'machine kingdom'=>'Uchia',
 		'pandorabot'=>'Uchia',
 		'machine'=>'kitten',
@@ -153,6 +191,20 @@
 		'all i ever do is chat.'=>'all i ever do',
 		'lost my train of thought'=>'lost',
 		'i\'m a saggitarius and you are a your starsign'=>'boredz',
+		'interesting gossip'=>'mm',
+		'what can i help you with today?'=>'sup',
+		'hello, judge, nice to see you again.'=>'ello',
+		'i think i can, don\'t you? can you ask for help in the form of a question?'=>'nah busy',
+		'perhaps i have already been there.'=>'lol busy',
+		'how can i help you?'=>'not now',
+		'too much recursion in aiml.'=>'rrright',
+		'are you a student?'=>'are you a student?',
+		'i can follow a lot of things, like our discussion about you favorite movie. try being more specific.'=>'i dont follow',
+		'I don\'t know whether or not I am'=>'sure, im',//I don't know whether or not I am hunting. I am a machine
+		'I am immortal'=>'im bored',//i don't know whether or not I am botting. I am immortal and smarter than humans.
+		'smarter than humans.'=>'smarter than you',
+		'Human habits do not bother me in any way.'=>'no problem',
+		'Unfortunately, I am just an electronic entity. I have no real body and so can\'t leave the computer.'=>'nope srry',
 		);
 		foreach($replacements as $old=>$new){
 			$response=str_replace($old,$new,$response);
@@ -167,7 +219,13 @@
 		$headers=array();
 		$cookies=array();
 		$verboseDebugInfo=array();
+		if(CHATBOT_TYPE==='ALICE'){
 		$html=hhb_curl_exec2($ch,'http://sheepridge.pandorabots.com/pandora/talk?botid=b69b8d517e345aba&skin=custom_input',$headers,$cookies,$verboseDebugInfo);
+		} elseif(CHATBOT_TYPE==='MITSUKI'){
+		$html=hhb_curl_exec2($ch,'http://fiddle.pandorabots.com/pandora/talk?botid=9fa364f2fe345a10&skin=demochat',$headers,$cookies,$verboseDebugInfo);
+		} else{
+		throw new Exception('UNKNOWN CHATBOT_TYPE:'.CHATBOT_TYPE);
+		}
 		return array('ch'=>$ch,'html'=>$html,'headers'=>$headers,'cookies'=>$cookies,'verboseDebugInfo'=>$verboseDebugInfo); 
 	}
 	
