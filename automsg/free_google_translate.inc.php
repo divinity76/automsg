@@ -1,4 +1,5 @@
 <?php 	
+throw new Exception('DO NOT USE THIS API ANYMORE. GOOGLE FUCKED THE API.');
 	function free_google_translate($message="this test message is translated from English to Somali.",$language_from="en",$language_to="so"){
 		//WARNING: Uses undocumented, reverse-engineered google translate api that
 		// the HTML5 client at https://translate.google.com uses.
