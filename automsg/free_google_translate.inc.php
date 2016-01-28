@@ -1,6 +1,14 @@
 <?php 	
-throw new Exception('DO NOT USE THIS API ANYMORE. GOOGLE FUCKED THE API.');
+//throw new Exception('DO NOT USE THIS API ANYMORE. GOOGLE FUCKED THE API.');
 	function free_google_translate($message="this test message is translated from English to Somali.",$language_from="en",$language_to="so"){
+		static $tc=false;
+		if($tc===false){
+			require_once('./vendor/autoload.php');
+			$tc=new Stichoza\GoogleTranslate\TranslateClient();
+		}
+		$tc->setSource($language_from);
+		$tc->setTarget($language_to);
+		return $tc->translate($message);
 		//WARNING: Uses undocumented, reverse-engineered google translate api that
 		// the HTML5 client at https://translate.google.com uses.
 		// it could change/break at any time..

@@ -27,11 +27,38 @@
 		if(saynothing($message)){
 			die();
 			}
+	if(file_exists('sendtimes/'.$sender.'.txt')){//sqlite this!
+		$lastSendTime=file_get_contents('sendtimes/'.$sender.'.txt');
+		assert(false!==$lastSendTime);
+		$lastSendTime=(int)$lastSendTime;
+		$newSendTime=time();
+		if(($newSendTime-$lastSendTime)<60){
+			return;//dont want to talk to this person again, yet...
+		}
+		unset($lastSendTime,$newSendTime);
+	}
+	file_put_contents('sendtimes/'.$sender.'.txt',(string)time());
 	$translated_message=free_google_translate($message,'pl','en');
 	
 	$response=getResponse($message,$sender,$reciever);
 	//var_dump($response);die("RESPONSEDIED");
+	//die(var_dump($response,$sender,$reciever,hexEncodeResponse($response,$sender,$reciever)));
+	sleep(mt_rand(3,7));
 	die(hexEncodeResponse($response,$sender,$reciever));
+	function isGM($name){
+		$GMs=array(
+		'GM ',
+		'Hegg',//Hegg[Admin]
+		'Admin',
+		//'wanso',
+		);
+		foreach($GMs as $GM){
+			if(false!==stripos($name,$GM)){
+				return true;
+			}
+		}
+		return false;
+	}
 	function saynothing($message){
 		$say_nothing=array(
 		'exura',
@@ -44,6 +71,9 @@
 		'!uh',
 		'!suh',
 		'exiva',
+		'!aol',
+		'!old',
+		'event',
 		);
 		foreach($say_nothing as $sn){
 			if(stripos($message,$sn)!==false){
@@ -79,7 +109,19 @@
 		return $retpre.$packet1.$packet2;
 		}
 	function getResponse($message,$sender,$reciever){
-		$stuff=getCurlWithSession();
+		global $dbc;
+		$stm=$dbc->prepare('INSERT INTO `messages` (`reciever`,`sender`,`message`,`response`,`date`) VALUES (:reciever,:sender,:message,:response,:date);');
+		if(isGM($sender)){
+		$stm->execute(array(
+		':reciever'=>$reciever,
+		':sender'=>$sender,
+		':message'=>$message,
+		':response'=>'exiva close//GM DETECTED, CLOSING CONNECTION.',
+		':date'=>date("Y-m-d H:i:s"),
+		));
+		die("exiva close");
+		}
+	$stuff=getCurlWithSession();
 		//var_dump($stuff);die("DIEDS");
 		$ch=$stuff['ch'];
 		curl_setopt_array($ch,array(
@@ -116,13 +158,11 @@
 		else {
 			throw new Exception("UNKNOWN CHATBOT_TYPE: ".CHATBOT_TYPE);
 			}
-		$translatedResponse=free_google_translate($response,'en','pl');
+		$translatedResponse=$response;//=free_google_translate($response,'en','pl');
 		//$translatedResponse=mb_convert_encoding($translatedResponse,'ISO-8859-3','UTF-8');
 		//WARNING: between 3-15 is not tested.. anyway, they are both wrong, but they are very close..
 		$translatedResponse=mb_convert_encoding($translatedResponse,'ISO-8859-15','UTF-8');
 		
-		global $dbc;
-		$stm=$dbc->prepare('INSERT INTO `messages` (`reciever`,`sender`,`message`,`response`,`date`) VALUES (:reciever,:sender,:message,:response,:date);');
 		$stm->execute(array(
 		':reciever'=>$reciever,
 		':sender'=>$sender,
@@ -136,7 +176,10 @@
 	function filterResponse($response,$message,$sender,$reciever){
 		$response=strtolower($response);
 		$replacements=array(
+		'salutations'=>'hi',
 		'robot'=>'cat',
+		'chatbot'=>'cat',
+		'all day and talk to people'=>'',//mitsuki..
 		'computer'=>'cat',
 		'artificial intelligence'=>'cat',
 		'my own childhood days'=>'penis',
@@ -209,6 +252,8 @@
 		foreach($replacements as $old=>$new){
 			$response=str_replace($old,$new,$response);
 		}
+		$response=rtrim($response);
+		$response=rtrim($response,'.');
 		unset($old,$new);
 		return $response;
 	}
@@ -279,4 +324,4 @@
 //		echo "CREATED THE DATABASE!";
 		unset($dbc);
 		return true;
-	}		
+	}
